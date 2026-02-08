@@ -1,0 +1,112 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{longtable}
+\usepackage{xltabular}
+\usepackage{booktabs}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    extendedchars=true,
+    columns=fullflexible,
+    keepspaces=true,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1 {Ñ}{{\~N}}1 {¡}{{!`}}1 {¿}{{?`}}1 {°}{{$^\circ$}}1
+}
+
+\title{PLANT IDENTIFICATION SYSTEM}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+\section*{Plant Identification System}
+
+\subsection*{Overview}
+This project aims to create a system for identifying plants using image recognition technology. It utilizes an ESP32-CAM module to capture plant images and sends them to a Flask server for processing. The server then communicates with the PlantNet API to identify the plant species and returns the result to the user interface.
+
+\subsection*{Components}
+\begin{itemize}
+    \item ESP32-CAM module: Captures plant images and sends them to the server.
+    \item Flask server: Receives images from the ESP32-CAM, performs plant identification using the PlantNet API, and returns the result.
+    \item PlantNet API: A plant identification API that takes an image as input and returns the identified plant species.
+\end{itemize}
+
+\subsection*{Requirements}
+\begin{itemize}
+    \item Hardware:
+    \item ESP32-CAM module
+    \item Software:
+    \item Arduino IDE (for ESP32-CAM firmware)
+    \item Python 3.x
+    \item Flask
+    \item Requests library
+    \item PlantNet API key
+\end{itemize}
+
+\subsection*{Installation}
+\begin{enumerate}
+    \item \textbf{ESP32-CAM Firmware:}
+\end{enumerate}
+\begin{itemize}
+    \item Upload the provided ESP32-CAM code to your ESP32-CAM module using the Arduino IDE. Make sure to update the Wi-Fi credentials (\texttt{ssid} and \texttt{password}) and the Flask server IP address (\texttt{http://192.168.xxx.xxx:33/identify}) in the code.
+\end{itemize}
+
+\begin{enumerate}
+    \item \textbf{Flask Server:}
+\end{enumerate}
+\begin{itemize}
+    \item Install Python 3.x and pip.
+    \item Install Flask and Requests library using pip:
+\end{itemize}
+     \begin{lstlisting}
+     pip install Flask requests
+     
+\end{lstlisting}
+
+\begin{enumerate}
+    \item \textbf{PlantNet API Key:}
+\end{enumerate}
+\begin{itemize}
+    \item Sign up for an account on \href{https://plantnet.org/}{PlantNet} and obtain an API key.
+\end{itemize}
+
+\begin{enumerate}
+    \item \textbf{Run the Server:}
+\end{enumerate}
+\begin{itemize}
+    \item Replace the \texttt{API\_KEY} variable in \texttt{app.py} with your PlantNet API key.
+    \item Start the Flask server:
+\end{itemize}
+     \begin{lstlisting}
+     python app.py
+     
+\end{lstlisting}
+
+\begin{enumerate}
+    \item \textbf{Web Interface:}
+\end{enumerate}
+\begin{itemize}
+    \item Access the web interface by navigating to \texttt{http://localhost:33} in your web browser.
+\end{itemize}
+
+\subsection*{Usage}
+\begin{enumerate}
+    \item Power on the ESP32-CAM module.
+    \item Navigate to the web interface.
+    \item Click on the \texttt{}Identify Plant'' button to capture an image.
+    \item Wait for the identification process to complete.
+    \item The identified plant species will be displayed on the web interface.
+\end{enumerate}
+
+
+
+\end{document}
