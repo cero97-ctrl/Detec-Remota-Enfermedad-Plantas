@@ -1,0 +1,125 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{hyperref}
+
+\title{Análisis del Proyecto: Sistema de Identificación de Plantas}
+\author{Gemini Code Assist}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Resumen del Proyecto}
+Este proyecto consiste en un sistema IoT diseñado para identificar especies de plantas mediante reconocimiento de imágenes.
+
+\subsection{Flujo de funcionamiento}
+\begin{enumerate}
+    \item \textbf{Captura:} Un módulo ESP32-CAM toma una foto de la planta.
+    \item \textbf{Procesamiento:} La imagen se envía a un servidor local desarrollado en Python (Flask).
+    \item \textbf{Identificación:} El servidor consulta la API de PlantNet con la imagen recibida.
+    \item \textbf{Resultado:} La especie identificada se muestra en una interfaz web.
+\end{enumerate}
+
+\section{Componentes Principales}
+\begin{itemize}
+    \item \textbf{Hardware:} Módulo ESP32-CAM.
+    \item \textbf{Backend:} Servidor Flask (Python) que actúa como intermediario.
+    \item \textbf{Servicio Externo:} API de PlantNet (requiere registro).
+\end{itemize}
+
+\section{Requisitos y Configuración Crítica}
+Según la documentación analizada (\texttt{README.md} y \texttt{app.py}), existen pasos manuales importantes:
+
+\begin{enumerate}
+    \item \textbf{Credenciales de API:} Es necesario registrarse en PlantNet para obtener una \texttt{API\_KEY} y configurarla en el archivo \texttt{app.py}.
+    \item \textbf{Firmware del ESP32-CAM:}
+    \begin{itemize}
+        \item Se debe usar el Arduino IDE para cargar el código.
+        \item Es crucial editar el código fuente para incluir el SSID y contraseña de la red Wi-Fi.
+        \item Se debe configurar la IP del servidor Flask en el firmware: \texttt{http://192.168.xxx.xxx:33/identify}.
+    \end{itemize}
+    \item \textbf{Puerto del Servidor:} El servidor Flask está configurado en el puerto \textbf{33}, por lo que la interfaz web será accesible en \texttt{http://localhost:33}.
+\end{enumerate}
+
+\section{Observaciones}
+\begin{itemize}
+    \item \textbf{Dependencia de Red:} El ESP32-CAM apunta a una IP local específica. Si el router asigna IPs dinámicas (DHCP), será necesario reconfigurar el ESP32 o establecer una IP estática en el servidor.
+    \item \textbf{Librerías Python:} Se requiere instalar \texttt{Flask} y \texttt{requests}.
+\end{itemize}
+
+\section{Análisis del Código del Servidor (app.py)}
+Se ha realizado una revisión del archivo \texttt{app.py}, identificando la lógica principal y puntos de mejora técnica.
+
+\subsection{Lógica de Negocio}
+\begin{itemize}
+    \item \textbf{Endpoint /identify (POST):} Recibe los datos binarios de la imagen (\texttt{request.data}), los guarda localmente como \texttt{image.jpg} en la carpeta de templates y los reenvía a la API de PlantNet.
+    \item \textbf{Interacción con PlantNet:} Construye la consulta usando el proyecto "all" y la API Key configurada. Espera una respuesta JSON y busca la clave \texttt{bestMatch}.
+    \item \textbf{Persistencia:} Utiliza una variable global \texttt{plant\_type} para almacenar el último resultado identificado.
+\end{itemize}
+
+\subsection{Problemas Detectados y Deuda Técnica}
+\begin{enumerate}
+    \item \textbf{Gestión de Estado (Global Variable):} El uso de la variable global \texttt{plant\_type} no es seguro ("thread-safe"). Si múltiples dispositivos envían imágenes, los resultados se sobrescribirán, mostrando datos incorrectos a los usuarios.
+    \item \textbf{Estructura de Directorios:} El código guarda las imágenes subidas en la carpeta \texttt{templates}. En Flask, esta carpeta está reservada para plantillas HTML, mientras que los archivos generados deberían ir en \texttt{static} o una carpeta \texttt{uploads}.
+    \item \textbf{Seguridad:} La \texttt{API\_KEY} está escrita directamente en el código ("hardcoded"). Se recomienda usar variables de entorno.
+    \item \textbf{Rutas Redundantes:} Existen dos definiciones de ruta idénticas para servir archivos desde \texttt{templates}.
+\end{enumerate}
+
+\section{Refactorización del Servidor}
+Se han aplicado las siguientes mejoras al archivo \texttt{app.py}:
+\begin{itemize}
+    \item \textbf{Seguridad:} La API Key ahora se busca en las variables de entorno (\texttt{PLANTNET\_API\_KEY}).
+    \item \textbf{Organización:} Las imágenes se guardan en la carpeta \texttt{static} en lugar de \texttt{templates}.
+    \item \textbf{Limpieza:} Se eliminaron rutas duplicadas y librerías no utilizadas.
+    \item \textbf{Compatibilidad:} Se añadió una ruta para mantener compatibilidad con el frontend si este solicita imágenes a \texttt{/templates/}.
+\end{itemize}
+
+\section{Análisis de Acceso Remoto: Uso de ngrok}
+Se ha evaluado la posibilidad de utilizar \textbf{ngrok} para exponer el servidor Flask a internet y permitir el acceso desde fuera de la red local.
+
+\subsection{Ventajas}
+\begin{itemize}
+    \item \textbf{Facilidad de uso:} No requiere configurar "Port Forwarding" en el router ni lidiar con firewalls complejos.
+    \item \textbf{HTTPS:} Proporciona automáticamente una conexión segura (SSL/TLS), lo cual es beneficioso para la transmisión de imágenes.
+\end{itemize}
+
+\subsection{Desafío Crítico: URL Dinámica}
+La versión gratuita de ngrok genera una URL aleatoria cada vez que se inicia (ej. \texttt{http://a1b2c3d4.ngrok.io}).
+\begin{itemize}
+    \item \textbf{Impacto en el ESP32:} Dado que la URL del servidor está "quemada" (hardcoded) en el firmware del ESP32-CAM, \textbf{cada vez que se reinicie ngrok, la URL cambiará y el ESP32 dejará de conectar}.
+    \item \textbf{Solución:} Sería necesario recompilar y volver a subir el código al ESP32 con la nueva URL cada vez, o adquirir una suscripción de pago de ngrok para tener dominios estáticos.
+\end{itemize}
+
+\section{Alternativas para URL Fija (Gratuitas)}
+Ante la limitación de ngrok, se han identificado alternativas que permiten mantener una URL estable sin coste:
+
+\subsection{Localtunnel}
+Es una herramienta de código abierto que permite exponer puertos locales.
+\begin{itemize}
+    \item \textbf{Ventaja Principal:} Permite solicitar un subdominio personalizado (ej. \texttt{https://mi-planta.loca.lt}). Si está disponible, se asigna, permitiendo configurar el ESP32 una sola vez.
+    \item \textbf{Requisito:} Requiere tener Node.js instalado.
+    \item \textbf{Comando:} \texttt{npx localtunnel --port 33 --subdomain nombre-elegido}
+    \item \textbf{Consideración:} Puede presentar una página de advertencia inicial que bloquee peticiones automáticas si no se configuran headers específicos en el cliente (ESP32).
+\end{itemize}
+
+\subsection{Cloudflare Tunnel}
+Es la opción más robusta y profesional, pero tiene un requisito importante para obtener una URL fija.
+\begin{itemize}
+    \item \textbf{Requisito:} Necesitas ser dueño de un \textbf{dominio propio} (ej. \texttt{midominio.com}).
+    \item \textbf{Costo:} Aunque el servicio de túnel es gratuito, el dominio generalmente tiene un costo anual (aunque existen dominios muy económicos).
+    \item \textbf{Funcionamiento:} Permite crear subdominios fijos (ej. \texttt{planta.midominio.com}) que no cambian, ideal para el ESP32.
+    \item \textbf{Nota:} Existe una versión de prueba ("Quick Tunnel") que no requiere dominio, pero genera URLs aleatorias, por lo que no soluciona el problema del ESP32.
+\end{itemize}
+
+\section{Gestión del Repositorio en GitHub}
+Para acceder y actualizar la carpeta del proyecto en GitHub con los cambios recientes:
+
+\begin{enumerate}
+    \item \textbf{Subir Cambios:} Utilizar \texttt{git add .}, \texttt{git commit} y \texttt{git push} para sincronizar la refactorización y documentación.
+    \item \textbf{Acceso Web:} La URL del repositorio se puede obtener mediante el comando \texttt{git remote -v}.
+    \item \textbf{Permisos:} Si el repositorio fue clonado de un tercero, se requerirá hacer un "Fork" para tener permisos de escritura.
+\end{enumerate}
+
+\end{document}
